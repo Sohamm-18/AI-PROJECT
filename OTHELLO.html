@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTHELLO</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+            background-color: rgba(203, 203, 244, 0.721);
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            grid-template-rows: repeat(4, 100px);
+            gap: 5px;
+            margin-top: 20px;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #8fbc8f;
+            cursor: pointer;
+            font-size: 24px;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .cell:hover {
+            background-color: #76c7b9;
+        }
+
+        .W {
+            background-color: white;
+            color: black;
+            border-radius: 50%;
+        }
+
+        .B {
+            background-color: black;
+            color: white;
+            border-radius: 50%;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .h1{
+            align-items: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>OTHELLO</h1>
+
+    <div id="board"></div>
+    <script>
+        const boardElement = document.getElementById('board');
+        let board = [];
+        let currentPlayer = 'B';
+
+        function createBoard() {
+            board = Array.from({ length: 4 }, () => Array(4).fill(' '));
+            board[1][1] = 'W';
+            board[1][2] = 'B';
+            board[2][1] = 'B';
+            board[2][2] = 'W';
+            renderBoard();
+        }
+
+        function renderBoard() {
+            boardElement.innerHTML = '';
+            for (let row = 0; row < 4; row++) {
+                for (let col = 0; col < 4; col++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.textContent = board[row][col] === ' ' ? '' : board[row][col];
+                    // Only add player class if it's not an empty cell
+                    if (board[row][col] !== ' ') {
+                        cell.classList.add(board[row][col]);
+                    }
+                    cell.addEventListener('click', handleCellClick);
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        function handleCellClick(event) {
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+            if (isValidMove(row, col, currentPlayer)) {
+                flipPieces(row, col, currentPlayer);
+                currentPlayer = currentPlayer === 'B' ? 'W' : 'B';
+                renderBoard();
+
+                // AI move if it's AI's turn
+                if (currentPlayer === 'W') {
+                    setTimeout(aiMove, 500);  // Add delay for better UX
+                }
+            }
+        }
+
+        function isValidMove(row, col, player) {
+            if (board[row][col] !== ' ') return false;
+
+            const opponent = player === 'B' ? 'W' : 'B';
+            const directions = [
+                [-1, 0], [1, 0], [0, -1], [0, 1],
+                [-1, -1], [1, 1], [-1, 1], [1, -1]
+            ];
+            let valid = false;
+
+            for (const [dr, dc] of directions) {
+                let r = row + dr;
+                let c = col + dc;
+                let foundOpponent = false;
+                while (r >= 0 && r < 4 && c >= 0 && c < 4 && board[r][c] === opponent) {
+                    foundOpponent = true;
+                    r += dr;
+                    c += dc;
+                }
+                if (foundOpponent && r >= 0 && r < 4 && c >= 0 && c < 4 && board[r][c] === player) {
+                    valid = true;
+                }
+            }
+            return valid;
+        }
+
+        function flipPieces(row, col, player) {
+            board[row][col] = player;
+            const opponent = player === 'B' ? 'W' : 'B';
+            const directions = [
+                [-1, 0], [1, 0], [0, -1], [0, 1],
+                [-1, -1], [1, 1], [-1, 1], [1, -1]
+            ];
+
+            for (const [dr, dc] of directions) {
+                let r = row + dr;
+                let c = col + dc;
+                const path = [];
+                while (r >= 0 && r < 4 && c >= 0 && c < 4 && board[r][c] === opponent) {
+                    path.push([r, c]);
+                    r += dr;
+                    c += dc;
+                }
+                if (r >= 0 && r < 4 && c >= 0 && c < 4 && board[r][c] === player) {
+                    for (const [pr, pc] of path) {
+                        board[pr][pc] = player;
+                    }
+                }
+            }
+        }
+
+        function getValidMoves(player) {
+            const validMoves = [];
+            for (let row = 0; row < 4; row++) {
+                for (let col = 0; col < 4; col++) {
+                    if (isValidMove(row, col, player)) {
+                        validMoves.push([row, col]);
+                    }
+                }
+            }
+            return validMoves;
+        }
+
+        function aiMove() {
+            const validMoves = getValidMoves('W');
+            if (validMoves.length === 0) {
+                currentPlayer = 'B'; // Switch back to human
+                setTimeout(() => {
+                    alert("No valid moves for the AI. Skipping turn.");
+                }, 100);  // Delay the alert to allow board rendering
+                return;
+            }
+            const [row, col] = validMoves[Math.floor(Math.random() * validMoves.length)];
+            flipPieces(row, col, 'W');
+            renderBoard();
+
+            // Check if the game ends after the AI move
+            setTimeout(() => {
+                currentPlayer = 'B'; // Switch back to human
+
+                if (getValidMoves('B').length === 0) {
+                    setTimeout(() => {
+                        alert("No valid moves for the player. Game Over!");
+                        declareWinner();
+                    }, 100);  // Delay the alert to allow board rendering
+                }
+            }, 500);  // Ensure board renders the AI's last move before checking game state
+        }
+
+        function declareWinner() {
+            const blackPieces = countPieces('B');
+            const whitePieces = countPieces('W');
+            let message = `Game over! Black: ${blackPieces}, White: ${whitePieces}.`;
+            if (blackPieces > whitePieces) {
+                message += " Black wins!";
+            } else if (whitePieces > blackPieces) {
+                message += " White wins!";
+            } else {
+                message += " It's a tie!";
+            }
+
+            setTimeout(() => {
+                alert(message);  // Delay the alert to allow final board update
+            }, 100);
+        }
+
+        function countPieces(player) {
+            return board.flat().filter(piece => piece === player).length;
+        }
+
+        // Initialize the game
+        createBoard();
+    </script>
+</body>
+</html>
